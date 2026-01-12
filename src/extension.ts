@@ -7,6 +7,7 @@ import * as vscode from "vscode"
 import { sendAccountButtonClickedEvent } from "./core/controller/ui/subscribeToAccountButtonClicked"
 import { sendChatButtonClickedEvent } from "./core/controller/ui/subscribeToChatButtonClicked"
 import { sendHistoryButtonClickedEvent } from "./core/controller/ui/subscribeToHistoryButtonClicked"
+import { sendLearningButtonClickedEvent } from "./core/controller/ui/subscribeToLearningButtonClicked"
 import { sendMcpButtonClickedEvent } from "./core/controller/ui/subscribeToMcpButtonClicked"
 import { sendSettingsButtonClickedEvent } from "./core/controller/ui/subscribeToSettingsButtonClicked"
 import { WebviewProvider } from "./core/webview"
@@ -137,6 +138,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(commands.AccountButton, () => {
 			// Send event to all subscribers using the gRPC streaming method
 			sendAccountButtonClickedEvent()
+		}),
+	)
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.LearningButton, () => {
+			// Send event to all subscribers using the gRPC streaming method
+			sendLearningButtonClickedEvent()
 		}),
 	)
 

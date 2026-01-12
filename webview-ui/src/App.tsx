@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import AccountView from "./components/account/AccountView"
 import ChatView from "./components/chat/ChatView"
 import HistoryView from "./components/history/HistoryView"
+import LearningView from "./components/learning/LearningView"
 import McpView from "./components/mcp/configuration/McpConfigurationView"
 import OnboardingView from "./components/onboarding/OnboardingView"
 import SettingsView from "./components/settings/SettingsView"
@@ -23,15 +24,18 @@ const AppContent = () => {
 		settingsTargetSection,
 		showHistory,
 		showAccount,
+		showLearning,
 		showAnnouncement,
 		onboardingModels,
 		setShowAnnouncement,
 		setShouldShowAnnouncement,
 		closeMcpView,
 		navigateToHistory,
+		navigateToLearning,
 		hideSettings,
 		hideHistory,
 		hideAccount,
+		hideLearning,
 		hideAnnouncement,
 	} = useExtensionState()
 
@@ -51,6 +55,23 @@ const AppContent = () => {
 				})
 		}
 	}, [shouldShowAnnouncement, setShouldShowAnnouncement, setShowAnnouncement])
+
+	// Listen for learning mode toggle via keyboard shortcut
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Cmd/Ctrl + Shift + L to toggle learning mode
+			if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "L") {
+				e.preventDefault()
+				if (showLearning) {
+					hideLearning()
+				} else {
+					navigateToLearning()
+				}
+			}
+		}
+		window.addEventListener("keydown", handleKeyDown)
+		return () => window.removeEventListener("keydown", handleKeyDown)
+	}, [showLearning, hideLearning, navigateToLearning])
 
 	if (!didHydrateState) {
 		return null
@@ -73,10 +94,11 @@ const AppContent = () => {
 					organizations={organizations}
 				/>
 			)}
+			{showLearning && <LearningView onDone={hideLearning} />}
 			{/* Do not conditionally load ChatView, it's expensive and there's state we don't want to lose (user input, disableInput, askResponse promise, etc.) */}
 			<ChatView
 				hideAnnouncement={hideAnnouncement}
-				isHidden={showSettings || showHistory || showMcp || showAccount}
+				isHidden={showSettings || showHistory || showMcp || showAccount || showLearning}
 				showAnnouncement={showAnnouncement}
 				showHistoryView={navigateToHistory}
 			/>

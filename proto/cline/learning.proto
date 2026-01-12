@@ -1,0 +1,337 @@
+syntax = "proto3";
+
+package cline;
+
+import "cline/common.proto";
+
+option go_package = "github.com/cline/grpc-go/cline";
+option java_multiple_files = true;
+option java_package = "bot.cline.proto";
+
+// Learning/Onboarding Service for education support
+service LearningService {
+  // Saves the user's learning profile
+  rpc saveProfile(SaveProfileRequest) returns (Empty);
+  // Gets the user's learning profile
+  rpc getProfile(GetProfileRequest) returns (GetProfileResponse);
+  // Initializes the onboarding environment (.onboarding/ directory)
+  rpc initEnvironment(InitEnvironmentRequest) returns (Empty);
+  // Detects the tech stack used in the current project
+  rpc detectTechStack(DetectTechStackRequest) returns (DetectedTechStack);
+  // Gets the curriculum
+  rpc getCurriculum(GetCurriculumRequest) returns (GetCurriculumResponse);
+  // Generates a curriculum based on project analysis and user profile (streaming)
+  rpc generateCurriculum(GenerateCurriculumRequest) returns (stream CurriculumGenerationProgress);
+  // Updates the progress of a learning task
+  rpc updateTaskProgress(UpdateTaskProgressRequest) returns (UpdateTaskProgressResponse);
+  // Gets learning statistics for the current curriculum
+  rpc getLearningStatistics(GetLearningStatisticsRequest) returns (GetLearningStatisticsResponse);
+  // Exports curriculum to various formats
+  rpc exportCurriculum(ExportCurriculumRequest) returns (ExportCurriculumResponse);
+
+  // ============ Quiz RPCs ============
+  // Gets available technologies for quiz (auto-detect or predefined list)
+  rpc getAvailableTechnologies(GetAvailableTechnologiesRequest) returns (GetAvailableTechnologiesResponse);
+  // Generates a quiz based on selected technologies (streaming)
+  rpc generateQuiz(GenerateQuizRequest) returns (stream QuizGenerationProgress);
+  // Submits an answer to a quiz question
+  rpc submitQuizAnswer(SubmitQuizAnswerRequest) returns (SubmitQuizAnswerResponse);
+  // Completes the quiz and gets results with suggested profile
+  rpc completeQuiz(CompleteQuizRequest) returns (CompleteQuizResponse);
+}
+
+// User's learning profile containing skill information
+message UserProfile {
+  // Engineering experience level: "less_than_1_year", "1_to_3_years", "3_to_5_years", "more_than_5_years"
+  string experience_level = 1;
+  // Primary role: "frontend", "backend", "fullstack", "mobile", "devops", "other"
+  string primary_role = 2;
+  // Tech stack proficiency: technology name -> proficiency level
+  // Proficiency levels: "no_experience", "basic", "practical", "expert"
+  map<string, string> tech_stack_proficiency = 3;
+  // Learning goal: "overview", "feature_development", "architecture", "code_review"
+  string learning_goal = 4;
+  // Learning style: "theory", "hands_on", "sample_code"
+  string learning_style = 5;
+}
+
+// Request to save user profile
+message SaveProfileRequest {
+  Metadata metadata = 1;
+  UserProfile profile = 2;
+}
+
+// Request to get user profile
+message GetProfileRequest {
+  Metadata metadata = 1;
+}
+
+// Response containing user profile
+message GetProfileResponse {
+  bool exists = 1;
+  UserProfile profile = 2;
+}
+
+// Request to initialize onboarding environment
+message InitEnvironmentRequest {
+  Metadata metadata = 1;
+}
+
+// Request to detect tech stack
+message DetectTechStackRequest {
+  Metadata metadata = 1;
+}
+
+// Detected technologies in the project
+message DetectedTechStack {
+  repeated string technologies = 1;
+}
+
+// ============ Curriculum-related messages ============
+
+// Task progress status
+enum TaskStatus {
+  TASK_STATUS_NOT_STARTED = 0;
+  TASK_STATUS_IN_PROGRESS = 1;
+  TASK_STATUS_COMPLETED = 2;
+  TASK_STATUS_SKIPPED = 3;
+}
+
+// A learning task within a chapter
+message LearningTask {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TaskStatus status = 4;
+  repeated string target_files = 5;      // Related file paths
+  string estimated_time = 6;             // Estimated time (e.g., "30 minutes")
+  repeated string prerequisites = 7;     // Prerequisite task IDs
+}
+
+// A chapter containing multiple learning tasks
+message Chapter {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  repeated LearningTask tasks = 4;
+  int32 order = 5;
+}
+
+// The complete curriculum
+message Curriculum {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  repeated Chapter chapters = 4;
+  string created_at = 5;
+  string updated_at = 6;
+  string project_summary = 7;            // AI-generated project summary
+}
+
+// Progress update during curriculum generation
+message CurriculumGenerationProgress {
+  string phase = 1;                      // "analyzing" | "generating" | "completed" | "error"
+  int32 progress_percent = 2;            // 0-100
+  string current_step = 3;               // Current step description
+  Curriculum partial_curriculum = 4;     // Partial curriculum (during generation)
+  string error_message = 5;              // Error message if phase is "error"
+}
+
+// Request to get curriculum
+message GetCurriculumRequest {
+  Metadata metadata = 1;
+}
+
+// Response containing curriculum
+message GetCurriculumResponse {
+  bool exists = 1;
+  Curriculum curriculum = 2;
+}
+
+// Request to generate curriculum
+message GenerateCurriculumRequest {
+  Metadata metadata = 1;
+  bool force_regenerate = 2;             // Overwrite existing curriculum
+}
+
+// Request to update task progress
+message UpdateTaskProgressRequest {
+  Metadata metadata = 1;
+  string task_id = 2;
+  TaskStatus status = 3;
+}
+
+// Response after updating task progress
+message UpdateTaskProgressResponse {
+  bool success = 1;
+  Curriculum curriculum = 2;
+  LearningStatistics statistics = 3;  // Updated statistics
+}
+
+// ============ Learning Statistics messages ============
+
+// Statistics for a single task
+message TaskStatistic {
+  string task_id = 1;
+  string started_at = 2;           // When status changed to in_progress
+  string completed_at = 3;         // When status changed to completed
+  int32 time_spent_minutes = 4;    // Accumulated time in minutes
+}
+
+// Chapter-level progress
+message ChapterProgress {
+  string chapter_id = 1;
+  string chapter_title = 2;
+  int32 total_tasks = 3;
+  int32 completed_tasks = 4;
+  float progress_percentage = 5;
+}
+
+// Overall learning statistics
+message LearningStatistics {
+  string curriculum_id = 1;
+  int32 total_tasks = 2;
+  int32 completed_tasks = 3;
+  int32 in_progress_tasks = 4;
+  int32 skipped_tasks = 5;
+  int32 not_started_tasks = 6;
+  int32 estimated_total_minutes = 7;
+  int32 actual_time_spent_minutes = 8;
+  float completion_percentage = 9;
+  string last_activity_time = 10;
+  int32 streak_days = 11;          // Consecutive learning days
+  repeated string learning_dates = 12;  // Dates with learning activity
+  repeated TaskStatistic task_stats = 13;
+  repeated ChapterProgress chapter_progress = 14;
+}
+
+// Request to get learning statistics
+message GetLearningStatisticsRequest {
+  Metadata metadata = 1;
+  string curriculum_id = 2;
+}
+
+// Response containing learning statistics
+message GetLearningStatisticsResponse {
+  bool exists = 1;
+  LearningStatistics statistics = 2;
+}
+
+// ============ Export messages ============
+
+// Request to export curriculum
+message ExportCurriculumRequest {
+  Metadata metadata = 1;
+  string format = 2;              // "markdown" | "json"
+  bool include_statistics = 3;   // Include learning statistics in export
+}
+
+// Response containing exported content
+message ExportCurriculumResponse {
+  bool success = 1;
+  string content = 2;            // Exported content (markdown or JSON string)
+  string suggested_filename = 3; // Suggested filename for download
+  string error_message = 4;      // Error message if success is false
+}
+
+// ============ Quiz-related messages ============
+
+// A single choice in a quiz question
+message QuizChoice {
+  string id = 1;           // "A", "B", "C", "D"
+  string text = 2;         // Choice text
+  bool is_correct = 3;     // Whether this is the correct answer (backend only)
+}
+
+// A quiz question
+message QuizQuestion {
+  string id = 1;                      // UUID
+  int32 question_number = 2;          // 1-5
+  string technology = 3;              // Target technology (e.g., "React", "TypeScript")
+  string difficulty = 4;              // "beginner" | "intermediate" | "advanced"
+  string question_text = 5;           // The question text
+  repeated QuizChoice choices = 6;    // 4 choices
+  string explanation = 7;             // Explanation (shown after answering)
+}
+
+// The complete quiz
+message Quiz {
+  string id = 1;
+  repeated QuizQuestion questions = 2;
+  repeated string target_technologies = 3;  // Target technology list
+  string created_at = 4;
+}
+
+// A user's answer to a quiz question
+message QuizAnswer {
+  string question_id = 1;
+  string selected_choice_id = 2;     // "A", "B", "C", "D"
+  bool is_correct = 3;               // Whether the answer was correct
+  int32 time_spent_seconds = 4;      // Time spent on this question
+}
+
+// Quiz result after completion
+message QuizResult {
+  string quiz_id = 1;
+  repeated QuizAnswer answers = 2;
+  map<string, string> proficiency_levels = 3;  // { "React": "practical", "TypeScript": "basic" }
+  string overall_level = 4;                     // "beginner" | "intermediate" | "advanced"
+  float overall_score = 5;                      // 0.0 - 1.0
+  string completed_at = 6;
+}
+
+// Progress update during quiz generation
+message QuizGenerationProgress {
+  string phase = 1;                   // "detecting" | "generating" | "completed" | "error"
+  int32 progress_percent = 2;         // 0-100
+  string current_step = 3;            // Current step description
+  Quiz partial_quiz = 4;              // Partial quiz (during generation)
+  string error_message = 5;
+}
+
+// Request to get available technologies for quiz
+message GetAvailableTechnologiesRequest {
+  Metadata metadata = 1;
+}
+
+// Response containing available technologies
+message GetAvailableTechnologiesResponse {
+  repeated string technologies = 1;   // Available technology list
+  bool has_project = 2;               // Whether a project was detected
+  repeated string detected_technologies = 3;  // Technologies detected from project
+}
+
+// Request to generate a quiz
+message GenerateQuizRequest {
+  Metadata metadata = 1;
+  repeated string technologies = 2;   // Target technologies (empty = auto-detect)
+  bool use_project_context = 3;       // Whether to reference project code
+}
+
+// Request to submit a quiz answer
+message SubmitQuizAnswerRequest {
+  Metadata metadata = 1;
+  string quiz_id = 2;
+  string question_id = 3;
+  string selected_choice_id = 4;
+  int32 time_spent_seconds = 5;
+}
+
+// Response after submitting a quiz answer
+message SubmitQuizAnswerResponse {
+  bool is_correct = 1;
+  string correct_choice_id = 2;
+  string explanation = 3;
+}
+
+// Request to complete a quiz and get results
+message CompleteQuizRequest {
+  Metadata metadata = 1;
+  string quiz_id = 2;
+}
+
+// Response containing quiz results and suggested profile
+message CompleteQuizResponse {
+  QuizResult result = 1;
+  UserProfile suggested_profile = 2;  // Suggested profile based on quiz results
+}

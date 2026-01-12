@@ -70,6 +70,7 @@ const AutoApproveModal: React.FC<AutoApproveModalProps> = ({ isVisible, setIsVis
 				className="overflow-y-auto pb-3 px-3.5 overscroll-contain"
 				style={{
 					maxHeight: "60vh",
+					backgroundColor: "var(--vscode-sideBar-background)",
 				}}>
 				<div className="mb-2.5 text-muted-foreground text-xs cursor-pointer" onClick={() => setIsVisible(false)}>
 					Let Cline take these actions without asking for approval.{" "}

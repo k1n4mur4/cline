@@ -55,6 +55,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	settingsTargetSection?: string
 	showHistory: boolean
 	showAccount: boolean
+	showLearning: boolean
 	showAnnouncement: boolean
 	showChatModelSelector: boolean
 	expandTaskHeader: boolean
@@ -99,12 +100,14 @@ export interface ExtensionStateContextType extends ExtensionState {
 	navigateToSettings: (targetSection?: string) => void
 	navigateToHistory: () => void
 	navigateToAccount: () => void
+	navigateToLearning: () => void
 	navigateToChat: () => void
 
 	// Hide functions
 	hideSettings: () => void
 	hideHistory: () => void
 	hideAccount: () => void
+	hideLearning: () => void
 	hideAnnouncement: () => void
 	hideChatModelSelector: () => void
 	closeMcpView: () => void
@@ -125,6 +128,7 @@ export const ExtensionStateContextProvider: React.FC<{
 	const [settingsTargetSection, setSettingsTargetSection] = useState<string | undefined>(undefined)
 	const [showHistory, setShowHistory] = useState(false)
 	const [showAccount, setShowAccount] = useState(false)
+	const [showLearning, setShowLearning] = useState(false)
 	const [showAnnouncement, setShowAnnouncement] = useState(false)
 	const [showChatModelSelector, setShowChatModelSelector] = useState(false)
 
@@ -141,6 +145,7 @@ export const ExtensionStateContextProvider: React.FC<{
 	}, [])
 	const hideHistory = useCallback(() => setShowHistory(false), [setShowHistory])
 	const hideAccount = useCallback(() => setShowAccount(false), [setShowAccount])
+	const hideLearning = useCallback(() => setShowLearning(false), [setShowLearning])
 	const hideAnnouncement = useCallback(() => setShowAnnouncement(false), [setShowAnnouncement])
 	const hideChatModelSelector = useCallback(() => setShowChatModelSelector(false), [setShowChatModelSelector])
 
@@ -150,12 +155,13 @@ export const ExtensionStateContextProvider: React.FC<{
 			setShowSettings(false)
 			setShowHistory(false)
 			setShowAccount(false)
+			setShowLearning(false)
 			if (tab) {
 				setMcpTab(tab)
 			}
 			setShowMcp(true)
 		},
-		[setShowMcp, setMcpTab, setShowSettings, setShowHistory, setShowAccount],
+		[setShowMcp, setMcpTab, setShowSettings, setShowHistory, setShowAccount, setShowLearning],
 	)
 
 	const navigateToSettings = useCallback(
@@ -163,32 +169,44 @@ export const ExtensionStateContextProvider: React.FC<{
 			setShowHistory(false)
 			closeMcpView()
 			setShowAccount(false)
+			setShowLearning(false)
 			setSettingsTargetSection(targetSection)
 			setShowSettings(true)
 		},
-		[closeMcpView],
+		[closeMcpView, setShowLearning],
 	)
 
 	const navigateToHistory = useCallback(() => {
 		setShowSettings(false)
 		closeMcpView()
 		setShowAccount(false)
+		setShowLearning(false)
 		setShowHistory(true)
-	}, [setShowSettings, closeMcpView, setShowAccount, setShowHistory])
+	}, [setShowSettings, closeMcpView, setShowAccount, setShowLearning, setShowHistory])
 
 	const navigateToAccount = useCallback(() => {
 		setShowSettings(false)
 		closeMcpView()
 		setShowHistory(false)
+		setShowLearning(false)
 		setShowAccount(true)
-	}, [setShowSettings, closeMcpView, setShowHistory, setShowAccount])
+	}, [setShowSettings, closeMcpView, setShowHistory, setShowLearning, setShowAccount])
+
+	const navigateToLearning = useCallback(() => {
+		setShowSettings(false)
+		closeMcpView()
+		setShowHistory(false)
+		setShowAccount(false)
+		setShowLearning(true)
+	}, [setShowSettings, closeMcpView, setShowHistory, setShowAccount, setShowLearning])
 
 	const navigateToChat = useCallback(() => {
 		setShowSettings(false)
 		closeMcpView()
 		setShowHistory(false)
 		setShowAccount(false)
-	}, [setShowSettings, closeMcpView, setShowHistory, setShowAccount])
+		setShowLearning(false)
+	}, [setShowSettings, closeMcpView, setShowHistory, setShowAccount, setShowLearning])
 
 	const [state, setState] = useState<ExtensionState>({
 		version: "",
@@ -290,6 +308,7 @@ export const ExtensionStateContextProvider: React.FC<{
 	const chatButtonUnsubscribeRef = useRef<(() => void) | null>(null)
 	const accountButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
 	const settingsButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
+	const learningButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
 	const partialMessageUnsubscribeRef = useRef<(() => void) | null>(null)
 	const mcpMarketplaceUnsubscribeRef = useRef<(() => void) | null>(null)
 	const openRouterModelsUnsubscribeRef = useRef<(() => void) | null>(null)
@@ -455,6 +474,21 @@ export const ExtensionStateContextProvider: React.FC<{
 			},
 			onComplete: () => {
 				console.log("Settings button clicked subscription completed")
+			},
+		})
+
+		// Set up learning button clicked subscription
+		learningButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToLearningButtonClicked(EmptyRequest.create({}), {
+			onResponse: () => {
+				// When learning button is clicked, navigate to learning
+				console.log("[DEBUG] Received learning button clicked event from gRPC stream")
+				navigateToLearning()
+			},
+			onError: (error) => {
+				console.error("Error in learning button clicked subscription:", error)
+			},
+			onComplete: () => {
+				console.log("Learning button clicked subscription completed")
 			},
 		})
 
@@ -624,6 +658,10 @@ export const ExtensionStateContextProvider: React.FC<{
 				settingsButtonClickedSubscriptionRef.current()
 				settingsButtonClickedSubscriptionRef.current = null
 			}
+			if (learningButtonClickedSubscriptionRef.current) {
+				learningButtonClickedSubscriptionRef.current()
+				learningButtonClickedSubscriptionRef.current = null
+			}
 			if (partialMessageUnsubscribeRef.current) {
 				partialMessageUnsubscribeRef.current()
 				partialMessageUnsubscribeRef.current = null
@@ -718,6 +756,7 @@ export const ExtensionStateContextProvider: React.FC<{
 		settingsTargetSection,
 		showHistory,
 		showAccount,
+		showLearning,
 		showAnnouncement,
 		showChatModelSelector,
 		globalClineRulesToggles: state.globalClineRulesToggles || {},
@@ -737,12 +776,14 @@ export const ExtensionStateContextProvider: React.FC<{
 		navigateToSettings,
 		navigateToHistory,
 		navigateToAccount,
+		navigateToLearning,
 		navigateToChat,
 
 		// Hide functions
 		hideSettings,
 		hideHistory,
 		hideAccount,
+		hideLearning,
 		hideAnnouncement,
 		setShowAnnouncement,
 		hideChatModelSelector,

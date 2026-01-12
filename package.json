@@ -153,6 +153,11 @@
 				"icon": "$(settings-gear)"
 			},
 			{
+				"command": "cline.learningButtonClicked",
+				"title": "Learning Mode",
+				"icon": "$(mortar-board)"
+			},
+			{
 				"command": "cline.dev.createTestTasks",
 				"title": "Create Test Tasks",
 				"category": "Cline",
@@ -276,6 +281,11 @@
 				{
 					"command": "cline.settingsButtonClicked",
 					"group": "navigation@6",
+					"when": "view == claude-dev.SidebarProvider"
+				},
+				{
+					"command": "cline.learningButtonClicked",
+					"group": "navigation@4",
 					"when": "view == claude-dev.SidebarProvider"
 				}
 			],
